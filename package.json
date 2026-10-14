@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node scripts/seed.js",
-    "test": "jest --runInBand --forceExit"
+    "test": "jest --runInBand --forceExit --cacheDirectory .test-data/jest-cache"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

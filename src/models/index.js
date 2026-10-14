@@ -119,7 +119,10 @@ const paymentSchema = new Schema({
   receivedBy: oid('User', { required: true }),
 }, { timestamps: true });
 paymentSchema.index({ schoolId: 1, receiptNumber: 1 }, { unique: true });
-paymentSchema.index({ schoolId: 1, idempotencyKey: 1 }, { unique: true });
+paymentSchema.index({ schoolId: 1, idempotencyKey: 1 }, {
+  unique: true,
+  partialFilterExpression: { idempotencyKey: { $type: 'string', $gt: '' } },
+});
 paymentSchema.index({ schoolId: 1, paidDate: 1 });
 paymentSchema.index({ schoolId: 1, studentId: 1, paidAt: -1 });
 paymentSchema.index({ schoolId: 1, dueId: 1 });
