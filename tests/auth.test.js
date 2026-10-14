@@ -1,10 +1,22 @@
 const h = require('./helpers');
+const env = require('../src/config/env');
+const { cookieOptions } = require('../src/middleware/auth');
 
 let d;
 beforeAll(async () => { await h.connect(); d = await h.seedTwoSchools(); });
 afterAll(h.disconnect);
 
 describe('authentication', () => {
+  test('secure cross-site cookie mode pairs SameSite=None with Secure', () => {
+    const previousCookieSecure = env.cookieSecure;
+    env.cookieSecure = true;
+    try {
+      expect(cookieOptions()).toMatchObject({ httpOnly: true, sameSite: 'none', secure: true });
+    } finally {
+      env.cookieSecure = previousCookieSecure;
+    }
+  });
+
   test('trusts one proxy hop and rate-limits forwarded client IPs separately', async () => {
     expect(h.app.get('trust proxy')).toBe(1);
 
@@ -50,6 +62,14 @@ describe('authentication', () => {
     expect(JSON.stringify(res.body)).not.toMatch(/passwordHash|eyJ/);
     expect(res.body.data.role).toBe('admin');
     expect(res.body.data.school.code).toBe('ALP');
+  });
+
+  test('login cookie authenticates a subsequent dashboard request', async () => {
+    const agent = await h.loginAs('admin@a.test');
+    const res = await agent.get('/api/dashboard');
+    expect(res.status).toBe(200);
+    expect(res.body.data.role).toBe('admin');
+    expect(res.body.data.students).toBe(3);
   });
 
   test('password is stored hashed', async () => {

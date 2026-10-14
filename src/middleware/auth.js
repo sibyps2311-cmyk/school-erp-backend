@@ -7,7 +7,9 @@ const { User, Membership, School } = require('../models');
 const COOKIE = 'erp_token';
 const cookieOptions = () => ({
   httpOnly: true,
-  sameSite: 'lax',
+  // Vercel and Render use different sites, so production cross-site API
+  // requests require SameSite=None. Browsers require Secure with that mode.
+  sameSite: env.cookieSecure ? 'none' : 'lax',
   secure: env.cookieSecure,
   path: '/',
 });
