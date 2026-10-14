@@ -5,6 +5,42 @@ beforeAll(async () => { await h.connect(); d = await h.seedTwoSchools(); });
 afterAll(h.disconnect);
 
 describe('authentication', () => {
+  test('trusts one proxy hop and rate-limits forwarded client IPs separately', async () => {
+    expect(h.app.get('trust proxy')).toBe(1);
+
+    // Exercise the production limiter in this focused test; the rest of the
+    // suite skips it to avoid coupling unrelated auth tests to its memory store.
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
+    try {
+      let response;
+      for (let i = 0; i < 30; i += 1) {
+        response = await h.request(h.app)
+          .post('/api/auth/login')
+          .set('X-Requested-With', 'erp-web')
+          .set('X-Forwarded-For', '198.51.100.21')
+          .send({});
+        expect(response.status).toBe(400);
+      }
+
+      response = await h.request(h.app)
+        .post('/api/auth/login')
+        .set('X-Requested-With', 'erp-web')
+        .set('X-Forwarded-For', '198.51.100.21')
+        .send({});
+      expect(response.status).toBe(429);
+
+      response = await h.request(h.app)
+        .post('/api/auth/login')
+        .set('X-Requested-With', 'erp-web')
+        .set('X-Forwarded-For', '198.51.100.22')
+        .send({});
+      expect(response.status).toBe(400);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  });
+
   test('login sets an HTTP-only cookie and never returns the token or password hash', async () => {
     const res = await h.request(h.app).post('/api/auth/login').set('X-Requested-With', 'erp-web').send({ email: 'admin@a.test', password: h.PASSWORD });
     expect(res.status).toBe(200);

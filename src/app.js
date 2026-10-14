@@ -9,6 +9,9 @@ const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 function createApp() {
   const app = express();
+  // Render's load balancer is one proxy hop from the application. Trust only
+  // that hop so req.ip (and express-rate-limit) uses the forwarded client IP.
+  app.set('trust proxy', 1);
   app.disable('x-powered-by');
   app.set('query parser', 'simple'); // no nested query objects => no operator injection through query strings
   app.use(helmet());
